@@ -430,6 +430,12 @@ section.major { padding: 72px 0 0; }
   margin: 6px 0 14px;
   border-radius: 2px;
 }
+.home-form .home-greeting {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--brand-orange);
+  margin: 0 0 2px;
+}
 .home-form .home-title {
   font-family: var(--font-display);
   font-size: 38px;
@@ -447,6 +453,28 @@ section.major { padding: 72px 0 0; }
   margin: 0;
   max-width: 560px;
 }
+.home-form .home-scope {
+  margin: 14px 0 0;
+  max-width: 580px;
+  font-size: 12.5px;
+  line-height: 1.5;
+  color: var(--ink-faint);
+  background: var(--brand-orange-soft);
+  border: 1px solid var(--brand-orange-tint);
+  border-radius: 8px;
+  padding: 9px 12px;
+}
+.home-form .home-scope strong { color: var(--brand-orange-deep); }
+.scope-note {
+  font-size: 12.5px;
+  line-height: 1.5;
+  color: var(--ink-faint);
+  background: var(--brand-orange-soft);
+  border: 1px solid var(--brand-orange-tint);
+  border-radius: 8px;
+  padding: 9px 12px;
+}
+.scope-note strong { color: var(--brand-orange-deep); }
 .home-form .rule {
   border: 0;
   border-top: 1px solid var(--rule);
@@ -569,6 +597,39 @@ section.major { padding: 72px 0 0; }
   color: var(--ink-faint);
   font-family: var(--font-mono);
   margin-top: 6px;
+}
+
+/* ===========================================================
+   AUTH (sign-in modal + nav account control)
+   =========================================================== */
+.topnav-account { display: inline-flex; align-items: center; gap: 10px; margin-left: 8px; }
+.topnav-email {
+  font-size: 12px; color: var(--ink-muted); font-weight: 600;
+  max-width: 160px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.topnav-signin { margin-left: 8px; }
+
+.auth-overlay {
+  position: fixed; inset: 0; z-index: 300;
+  background: rgba(11, 22, 53, 0.46);
+  display: flex; align-items: center; justify-content: center;
+  padding: 16px; animation: fadeIn 160ms ease;
+}
+.auth-card {
+  background: white; width: min(440px, 100%);
+  border-radius: 18px; padding: 28px 28px 24px;
+  box-shadow: 0 30px 80px -20px rgba(0, 0, 0, 0.4);
+}
+.auth-msg {
+  padding: 10px 14px; border-radius: 8px; font-size: 13px; font-weight: 500;
+}
+.auth-msg.error {
+  background: var(--brand-orange-soft); color: var(--brand-orange-deep);
+  border: 1px solid var(--brand-orange-tint);
+}
+.auth-msg.notice {
+  background: var(--tier-safe-soft, #eaf7ee); color: #1c7a3e;
+  border: 1px solid #bfe6cb;
 }
 
 /* ===========================================================

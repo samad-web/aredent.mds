@@ -50,7 +50,7 @@ export function YearBar({ analysisYear, onYearChange, records, availableYears })
         </div>
         <div className="yearbar-right">
           <span className="yearbar-stat">
-            <span className="yearbar-stat-label">Seats</span>
+            <span className="yearbar-stat-label">Allotments</span>
             <span className="num yearbar-stat-value">{fmtInt(stats.seats)}</span>
           </span>
           <span className="yearbar-stat">

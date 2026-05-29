@@ -13,6 +13,7 @@ import { COLLEGES, COLLEGES_DATA_VERSION, COLLEGES_LAST_UPDATED } from "./lib/co
 import { predictAll } from "./lib/algo.js";
 import { generateSampleData } from "./lib/sampleData.js";
 import { usePersistentState, hasPersistedValue } from "./lib/persist.js";
+import { isSupabaseConfigured, fetchAllotmentRecords } from "./lib/supabase.js";
 
 function Footer() {
   return (
@@ -104,23 +105,34 @@ export default function App() {
     setLoading(true);
     (async () => {
       try {
-        // /api/records prefers real MCC-scraped data when present and falls
-        // back to the synthetic sample server-side. Single source of truth.
-        const res = await fetch("/api/records");
-        if (!res.ok) throw new Error(`API ${res.status}`);
-        const json = await res.json();
-        if (cancelled) return;
-        if (Array.isArray(json.records) && json.records.length > 0) {
-          setRecords(json.records);
-          if (json.source === "mcc") {
-            setBootError(`Loaded ${json.count.toLocaleString("en-IN")} real allotment rows from MCC.`);
+        if (isSupabaseConfigured) {
+          // Client-direct: paginate the allotment table straight from Supabase.
+          const recs = await fetchAllotmentRecords();
+          if (cancelled) return;
+          if (recs.length > 0) {
+            setRecords(recs);
+            setBootError(`Loaded ${recs.length.toLocaleString("en-IN")} allotment rows from Supabase.`);
+          } else {
+            setRecords(generateSampleData());
           }
         } else {
-          setRecords(generateSampleData());
+          // Fallback: server-mediated /api/records (MCC cache or synthetic sample).
+          const res = await fetch("/api/records");
+          if (!res.ok) throw new Error(`API ${res.status}`);
+          const json = await res.json();
+          if (cancelled) return;
+          if (Array.isArray(json.records) && json.records.length > 0) {
+            setRecords(json.records);
+            if (json.source === "mcc") {
+              setBootError(`Loaded ${json.count.toLocaleString("en-IN")} real allotment rows from MCC.`);
+            }
+          } else {
+            setRecords(generateSampleData());
+          }
         }
       } catch (err) {
         if (cancelled) return;
-        setBootError(`API unreachable — using local sample data. (${err.message})`);
+        setBootError(`Data source unreachable — using local sample data. (${err.message})`);
         setRecords(generateSampleData());
       } finally {
         if (!cancelled) setLoading(false);
@@ -228,7 +240,6 @@ export default function App() {
           setStudent={setStudent}
           hasData={filteredRecords.length > 0}
           analysisYear={analysisYear}
-          onOpenAdmin={() => openAdmin()}
           onOpenDeepDive={onOpenDeepDive}
           onRoute={setRoute}
         />

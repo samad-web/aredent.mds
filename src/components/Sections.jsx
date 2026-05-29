@@ -134,6 +134,11 @@ export function PredictionsDashboard({ records, predictions, student, onOpenDeep
           right={<button className="btn secondary sm" onClick={exportCsv}>↓ Export CSV</button>}
         />
 
+        <p className="scope-note mb-4">
+          <strong>Scope:</strong> MCC counselling seats only (All-India Quota, Deemed &amp; Central universities).
+          State-quota government seats and most DNB seats go through separate counselling and are not predicted here.
+        </p>
+
         <div className="mb-6">
           <div className="label mb-2">Portfolio composition · {total} predictions</div>
           <TierStrip tierCounts={tierCounts} total={total} />

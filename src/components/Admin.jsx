@@ -8,8 +8,10 @@ import {
 } from "../lib/colleges.js";
 import { generateSampleData, makeSampleCsv } from "../lib/sampleData.js";
 import { normalizeCategory, normalizeQuota, normalizeRound, normalizeBool } from "../lib/normalize.js";
+import { isSupabaseConfigured, fetchAllotmentRecords } from "../lib/supabase.js";
 
-const ADMIN_PASS = "ardent2026";
+const ADMIN_EMAIL = "admin@ardent.mds";
+const ADMIN_PASS = "Admin@123";
 
 // NEET PG All India Rank is bounded ~1..250,000. Numbers outside this range
 // almost certainly indicate a typo (or the candidate confused rank with score).
@@ -113,13 +115,15 @@ export function AdminPanel({ open, onClose, records, setRecords, student, setStu
 }
 
 function AdminLogin({ onAuthed, onClose }) {
-  const [user, setUser] = useState("");
+  const [email, setEmail] = useState("");
   const [pass, setPass] = useState("");
   const [err, setErr] = useState("");
   const submit = (e) => {
     e.preventDefault();
-    if (!user.trim()) { setErr("Enter a username."); return; }
-    if (pass !== ADMIN_PASS) { setErr("Incorrect password."); return; }
+    if (email.trim().toLowerCase() !== ADMIN_EMAIL || pass !== ADMIN_PASS) {
+      setErr("Incorrect email or password.");
+      return;
+    }
     onAuthed();
   };
   return (
@@ -135,14 +139,14 @@ function AdminLogin({ onAuthed, onClose }) {
       <div className="eyebrow" style={{color:"var(--brand-orange)"}}>Admin access</div>
       <h2 className="h2" style={{margin:"4px 0 8px"}}>Sign in to continue</h2>
       <p className="subtitle" style={{margin:"0 0 28px", fontSize: 15}}>
-        The admin console is restricted — it can ingest historical allotment data, edit candidate profiles, and view the model methodology.
+        The admin console is restricted — it ingests historical allotment data and imports MCC PDFs into the database.
       </p>
 
       <form onSubmit={submit} className="vflex" style={{gap: 16}}>
-        <Field label="Username">
-          <input type="text" className="input" value={user} autoFocus
-                 onChange={e => { setErr(""); setUser(e.target.value); }}
-                 placeholder="admin" />
+        <Field label="Email">
+          <input type="email" className="input" value={email} autoFocus
+                 onChange={e => { setErr(""); setEmail(e.target.value); }}
+                 placeholder="admin@ardent.mds" />
         </Field>
         <Field label="Password">
           <input type="password" className="input" value={pass}
@@ -161,16 +165,9 @@ function AdminLogin({ onAuthed, onClose }) {
         </button>
       </form>
 
-      <div className="panel sunken mt-8" style={{padding: "14px 18px"}}>
-        <div className="label mb-2">Demo credentials</div>
-        <div className="vflex" style={{gap: 4}}>
-          <div className="footnote">Username: any (e.g. <span className="mono">admin</span>)</div>
-          <div className="footnote">Password: <span className="mono" style={{color:"var(--ink)", fontWeight: 600}}>{ADMIN_PASS}</span></div>
-        </div>
-        <p className="footnote mt-3" style={{color:"var(--ink-faint)"}}>
-          Session-only. Sign out, refresh, or close the tab to clear.
-        </p>
-      </div>
+      <p className="footnote mt-8" style={{color:"var(--ink-faint)"}}>
+        Session-only — sign out, refresh, or close the tab to clear.
+      </p>
     </div>
   );
 }
@@ -203,14 +200,18 @@ function DataTab({ records, setRecords }) {
 
   const commitMcc = async () => {
     if (!mccResult) return;
-    // Pull the parsed records from /api/records (which now includes this import).
     try {
-      const res = await fetch("/api/records");
-      const json = await res.json();
-      if (Array.isArray(json.records)) {
-        setRecords(json.records);
-        setMccResult(r => r ? { ...r, _committed: true } : r);
+      // When Supabase is the source, the import already synced there — re-pull
+      // from it. Otherwise fall back to the server's in-memory /api/records.
+      if (isSupabaseConfigured) {
+        const recs = await fetchAllotmentRecords();
+        setRecords(recs);
+      } else {
+        const res = await fetch("/api/records");
+        const json = await res.json();
+        if (Array.isArray(json.records)) setRecords(json.records);
       }
+      setMccResult(r => r ? { ...r, _committed: true } : r);
     } catch (err) {
       setMccError(err.message);
     }

@@ -177,12 +177,33 @@ const COURSE_RE =
 //   "Allotted"                    — R1 flat-list PDFs (plain remark)
 const ACTION_RE = "(?:Fresh Allotted\\s+in\\s+\\w+\\s+Round|Upgraded|Allotted)";
 
+// Trajectory PDFs put three round-columns on one line:
+//   <rank> <R1quota> <R1institute> <R1code> <R1status> | <R2…|-> | <R3quota> <R3institute> <R3course> …
+// The R1/R2 courses are bare codes (e.g. "GMED") that COURSE_RE doesn't match,
+// so a naive `.+?` college capture, anchored on the R1 quota, would run straight
+// through the round-separators and status words to the R3 course — bleeding 2-3
+// rows into one "college". These tokens NEVER occur inside a real institute name,
+// so we temper the college capture to refuse them, which forces the match to
+// anchor on the correct (final) quota→institute→course triple.
+const BLEED_RE = "(?:- -|Reported|Seat Surrendered|Did not|Upgraded|Fresh Allotted|Not Allotted)";
+const COLLEGE_RE = `((?:(?!${BLEED_RE}).)+?)`;
+
 const TAIL_RE = new RegExp(
-  `(${FULL_QUOTAS_RE})\\s+(.+?)\\s+(${COURSE_RE})\\s+` +
+  // Some PDFs spell the quota as "<label> Quota" (e.g. "All India Quota");
+  // absorb the optional trailing "Quota" word so it doesn't leak into the name.
+  `(${FULL_QUOTAS_RE})(?:\\s+Quota)?\\s+${COLLEGE_RE}\\s+(${COURSE_RE})\\s+` +
   `(${CAT_TOKEN})\\s+(${CAT_TOKEN})(\\s+PwD)?\\s+` +
   `(?:\\d+\\s+)?${ACTION_RE}`,
   "g"
 );
+
+// Defensive guard: a captured institute string that still contains row-bleed
+// markers or is implausibly long is corrupt — reject it rather than emit garbage.
+const COLLEGE_BLEED_GUARD = /- -|\b(Reported|Seat Surrendered|Did not|Upgraded|Fresh Allotted|Not Allotted|All India|DNB Quota)\b/;
+export function isBledCollege(name) {
+  const c = (name || "").trim();
+  return c.length === 0 || c.length > 90 || COLLEGE_BLEED_GUARD.test(c);
+}
 
 // 2-char R1 quota codes — used to detect candidate-row starts.
 const R1_QUOTA = "(?:AI|AM|AF|BH|DU|AD|IP|JM|MM|NR|PS)";
@@ -265,7 +286,7 @@ const SECTION_HEADERS = [
   /Round 1 Round 2/,
 ];
 
-function parsePdfText(text, { year, round }) {
+export function parsePdfText(text, { year, round }) {
   // Skip the legend pages — start at the first table header we can find.
   let body = text;
   let bodyStart = -1;
@@ -307,9 +328,15 @@ function parsePdfText(text, { year, round }) {
       if (skipped.length < 200) skipped.push(chunkText.slice(0, 400));
       continue;
     }
+    const college = cleanCollege(last[2]);
+    // Reject any row whose institute still shows bleed (multiple columns merged).
+    if (isBledCollege(college)) {
+      if (skipped.length < 200) skipped.push(chunkText.slice(0, 400));
+      continue;
+    }
     records.push({
       year: yearN, round: normalizedRound, rank,
-      college: cleanCollege(last[2]),
+      college,
       course: last[3].trim().replace(/\s+/g, " "),
       quota: canonicalQuotaLabel(last[1]),
       category: canonicalCandidateCategory(last[5]),

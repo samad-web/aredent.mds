@@ -8,10 +8,11 @@ import {
 
 export function Home({
   predictions, student, setStudent, hasData, analysisYear,
-  onOpenAdmin, onOpenDeepDive, onRoute,
+  onOpenDeepDive, onRoute,
 }) {
   const setField = (k, v) => setStudent(s => ({ ...s, [k]: v }));
   const ready = hasData && student.neetPgRank > 0;
+  const firstName = (student.name || "").trim().split(/\s+/)[0];
 
   const tierCounts = useMemo(() => {
     const c = { Safe: 0, Likely: 0, Target: 0, Reach: 0, Unlikely: 0 };
@@ -39,7 +40,7 @@ export function Home({
           <div className="right">
             {ready
               ? <span>{predictions.length} predictions ready</span>
-              : <span>{!hasData ? "No data loaded" : "Enter your rank to begin"}</span>}
+              : <span>{hasData ? "Enter your rank to begin" : "Loading data…"}</span>}
           </div>
         </div>
 
@@ -47,54 +48,50 @@ export function Home({
         <div className="home-form">
           <div className="brand-row"><span className="wordmark">ARDENT MDS</span></div>
           <span className="wordmark-underline" />
+          {firstName && <p className="home-greeting">Welcome back, {firstName}.</p>}
           <h1 className="home-title">Where can your rank get you?</h1>
           <p className="home-sub">
             Enter your NEET PG rank — predictions update instantly across every
             college and quota you're eligible for.
           </p>
+          <p className="home-scope">
+            <strong>Coverage:</strong> MCC counselling only — All-India Quota,
+            Deemed &amp; Central university seats. State-quota government seats
+            (~50% of govt seats, filled via separate state counselling) and most
+            DNB seats are not included.
+          </p>
 
-          {!hasData ? (
-            <div className="home-empty">
-              <p style={{margin: "16px 0 18px", color: "var(--ink-muted)", fontSize: 14}}>
-                No allotment data is loaded yet. Sign in to admin to upload a file or load the sample dataset.
-              </p>
-              <button className="btn primary" onClick={onOpenAdmin}>Open admin »</button>
-            </div>
-          ) : (
-            <>
-              <hr className="rule" />
-              <div className="home-inputs">
-                <Field label="NEET PG All India Rank *" hint="Your AIR (1 – 250,000)">
-                  <input
-                    type="number" className="input num" placeholder="e.g. 12847"
-                    value={student.neetPgRank || ""} min="1" max="250000" inputMode="numeric"
-                    autoFocus
-                    onChange={e => {
-                      const v = e.target.value;
-                      setField("neetPgRank", v === "" ? 0 : Math.max(0, parseInt(v) || 0));
-                    }}
-                  />
-                </Field>
-                <Field label="Category">
-                  <select className="select" value={student.category}
-                          onChange={e => setField("category", e.target.value)}>
-                    {["UR", "EWS", "OBC-NCL", "SC", "ST"].map(c => <option key={c}>{c}</option>)}
-                  </select>
-                </Field>
-                <Field label="Domicile state" hint="Unlocks state-quota pools">
-                  <select className="select" value={student.domicileState || ""}
-                          onChange={e => setField("domicileState", e.target.value)}>
-                    <option value="">— None —</option>
-                    {STATES.map(s => <option key={s}>{s}</option>)}
-                  </select>
-                </Field>
-              </div>
-              <p className="home-hint">
-                Need PwBD / in-service / ESIC / AFMS toggles or specialty filters?{" "}
-                <button className="link" onClick={() => onRoute("profile")}>Open full profile →</button>
-              </p>
-            </>
-          )}
+          <hr className="rule" />
+          <div className="home-inputs">
+            <Field label="NEET PG All India Rank *" hint="Your AIR (1 – 250,000)">
+              <input
+                type="number" className="input num" placeholder="e.g. 12847"
+                value={student.neetPgRank || ""} min="1" max="250000" inputMode="numeric"
+                autoFocus
+                onChange={e => {
+                  const v = e.target.value;
+                  setField("neetPgRank", v === "" ? 0 : Math.max(0, parseInt(v) || 0));
+                }}
+              />
+            </Field>
+            <Field label="Category">
+              <select className="select" value={student.category}
+                      onChange={e => setField("category", e.target.value)}>
+                {["UR", "EWS", "OBC-NCL", "SC", "ST"].map(c => <option key={c}>{c}</option>)}
+              </select>
+            </Field>
+            <Field label="Domicile state" hint="Unlocks state-quota pools">
+              <select className="select" value={student.domicileState || ""}
+                      onChange={e => setField("domicileState", e.target.value)}>
+                <option value="">— None —</option>
+                {STATES.map(s => <option key={s}>{s}</option>)}
+              </select>
+            </Field>
+          </div>
+          <p className="home-hint">
+            Need PwBD / in-service / ESIC / AFMS toggles or specialty filters?{" "}
+            <button className="link" onClick={() => onRoute("profile")}>Open full profile →</button>
+          </p>
         </div>
 
         {/* ====== Results (auto-shows when ready) ====== */}
@@ -118,7 +115,7 @@ export function Home({
                   <div className="home-summary-head">
                     <div>
                       <div className="eyebrow" style={{color: "var(--brand-orange)"}}>
-                        Your portfolio · Rank {fmtRank(student.neetPgRank)}
+                        {firstName ? `${firstName}'s portfolio` : "Your portfolio"} · Rank {fmtRank(student.neetPgRank)}
                       </div>
                       <div className="h3" style={{margin: "4px 0 0"}}>
                         {predictions.length.toLocaleString("en-IN")} eligible (college × course) combinations

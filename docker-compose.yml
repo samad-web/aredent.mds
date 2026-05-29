@@ -1,0 +1,21 @@
+services:
+  app:
+    build:
+      context: .
+      args:
+        # Compose substitutes these from the .env file in this directory.
+        # Public anon key — safe to bake into the client bundle.
+        VITE_SUPABASE_URL: ${VITE_SUPABASE_URL}
+        VITE_SUPABASE_ANON_KEY: ${VITE_SUPABASE_ANON_KEY}
+    restart: unless-stopped
+    # Runtime env (SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, PORT) — server-side only.
+    env_file: .env
+    # Bind to localhost only; nginx on the host is the public entrypoint + TLS.
+    ports:
+      - "127.0.0.1:8787:8787"
+    # Persist the MCC PDF scrape cache across redeploys.
+    volumes:
+      - mcc-cache:/app/server/cache
+
+volumes:
+  mcc-cache:

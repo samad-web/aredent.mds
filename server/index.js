@@ -21,6 +21,7 @@ import {
 import { generateSampleData, makeSampleCsv } from "../src/lib/sampleData.js";
 import { predictAll, runBacktest } from "../src/lib/algo.js";
 import { scrapeMccPdf, loadAllCachedMccRecords } from "./scrapers/mcc.js";
+import { syncPayloadToSupabase, isServerSupabaseConfigured } from "./lib/supabaseSync.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -98,9 +99,20 @@ app.post("/api/import/mcc", async (req, res) => {
     const result = await scrapeMccPdf({ url, year, round, force: !!force });
     // Merge into the in-process cache without rescanning all files (cheap).
     if (!result.fromCache) await refreshMccCache();
+    // Persist to Supabase (the source the client reads from) when configured.
+    let supabaseSync = { synced: false };
+    if (isServerSupabaseConfigured) {
+      try {
+        supabaseSync = await syncPayloadToSupabase(result);
+      } catch (e) {
+        supabaseSync = { synced: false, error: e.message };
+        // eslint-disable-next-line no-console
+        console.error("Supabase sync failed:", e.message);
+      }
+    }
     // Don't send the raw `skipped` lines back unless asked — they can be huge.
     const { skipped, ...summary } = result;
-    res.json({ ...summary, skippedSample: (skipped || []).slice(0, 10) });
+    res.json({ ...summary, supabaseSync, skippedSample: (skipped || []).slice(0, 10) });
   } catch (err) {
     // eslint-disable-next-line no-console
     console.error("MCC import failed:", err);
