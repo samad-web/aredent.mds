@@ -1,6 +1,6 @@
 /* AdminPanel — slide-over modal with Data / Master-list / Methodology tabs. */
 import React, { useState, useEffect, useMemo, useRef } from "react";
-import { Field, Toggle, Kpi, usePagination, Pagination } from "./ui.jsx";
+import { Field, Toggle, Kpi, usePagination, Pagination, Select } from "./ui.jsx";
 // Methodology now lives at its own /#methodology route, not inside admin.
 import {
   COLLEGES, STATES, COLLEGE_TYPES, SPECIALTIES_LIST,
@@ -342,10 +342,9 @@ function DataTab({ records, setRecords }) {
               onChange={e => setMcc(s => ({...s, year: parseInt(e.target.value) || s.year}))}/>
           </Field>
           <Field label="Round">
-            <select className="select" value={mcc.round}
-              onChange={e => setMcc(s => ({...s, round: e.target.value}))}>
-              {["R1","R2","R3","Mop-up","Stray"].map(r => <option key={r}>{r}</option>)}
-            </select>
+            <Select value={mcc.round}
+              options={["R1","R2","R3","Mop-up","Stray"]}
+              onChange={v => setMcc(s => ({...s, round: v}))} />
           </Field>
           <Field label="PDF URL" hint="Direct link to the MCC allotment PDF.">
             <input type="url" className="input" placeholder="https://mcc.nic.in/.../Result_PG_R1.pdf"
@@ -474,10 +473,10 @@ function AdminFilePanel({ file, onMappingChange, onCommit, onDiscard }) {
       <div className="grid cols-3 tight">
         {[...reqFields, ...optFields].map(field => (
           <Field key={field} label={field + (reqFields.includes(field) ? " *" : "")}>
-            <select className="select" value={file.mapping[field] || ""} onChange={e => onMappingChange({[field]: e.target.value})}>
-              <option value="">— none —</option>
-              {file.headers.map(h => <option key={h}>{h}</option>)}
-            </select>
+            <Select value={file.mapping[field] || ""}
+              options={[{value:"", label:"— none —"}, ...file.headers]}
+              onChange={v => onMappingChange({[field]: v})}
+              placeholder="— none —" />
           </Field>
         ))}
       </div>
@@ -535,20 +534,20 @@ export function ProfileTab({ student, setStudent, onContinue, stream = "PG", rec
                    min="20" max="65" onChange={e => setField("age", parseInt(e.target.value) || 0)} />
           </Field>
           <Field label="Gender">
-            <select className="select" value={student.gender || ""} onChange={e => setField("gender", e.target.value)}>
-              <option value="">— Select —</option>
-              <option>Female</option><option>Male</option><option>Non-binary</option><option>Prefer not to say</option>
-            </select>
+            <Select value={student.gender || ""}
+              options={["Female","Male","Non-binary","Prefer not to say"]}
+              onChange={v => setField("gender", v)} />
           </Field>
           <Field label="Attempt number" hint="Which NEET PG attempt is this?">
-            <select className="select" value={student.attemptNo || ""} onChange={e => setField("attemptNo", e.target.value ? parseInt(e.target.value) : "")}>
-              <option value="">— Select —</option>
-              <option value="1">1st (first attempt)</option>
-              <option value="2">2nd attempt</option>
-              <option value="3">3rd attempt</option>
-              <option value="4">4th attempt</option>
-              <option value="5">5+ attempts</option>
-            </select>
+            <Select value={student.attemptNo || ""}
+              options={[
+                {value:1, label:"1st (first attempt)"},
+                {value:2, label:"2nd attempt"},
+                {value:3, label:"3rd attempt"},
+                {value:4, label:"4th attempt"},
+                {value:5, label:"5+ attempts"},
+              ]}
+              onChange={v => setField("attemptNo", v ? parseInt(v) : "")} />
           </Field>
         </div>
         <p className="footnote mt-4" style={{color:"var(--ink-faint)"}}>
@@ -570,21 +569,20 @@ export function ProfileTab({ student, setStudent, onContinue, stream = "PG", rec
                    }}/>
           </Field>
           <Field label="Category">
-            <select className="select" value={student.category} onChange={e => setField("category", e.target.value)}>
-              {["UR","EWS","OBC-NCL","SC","ST"].map(c => <option key={c}>{c}</option>)}
-            </select>
+            <Select value={student.category}
+              options={["UR","EWS","OBC-NCL","SC","ST"]}
+              onChange={v => setField("category", v)} />
           </Field>
           <Field label="Domicile state *" hint="Required for state quota pools">
-            <select className="select" value={student.domicileState || ""} onChange={e => setField("domicileState", e.target.value)}>
-              <option value="">— Select —</option>
-              {STATES.map(s => <option key={s}>{s}</option>)}
-            </select>
+            <Select value={student.domicileState || ""}
+              options={STATES}
+              onChange={v => setField("domicileState", v)} />
           </Field>
           <Field label="Religion" hint="Flag for minority-institution eligibility only">
-            <select className="select" value={student.religion || ""} onChange={e => setField("religion", e.target.value)}>
-              <option value="">— Prefer not to say —</option>
-              <option>Hindu</option><option>Christian</option><option>Muslim</option><option>Sikh</option><option>Other</option>
-            </select>
+            <Select value={student.religion || ""}
+              options={[{value:"", label:"— Prefer not to say —"}, "Hindu","Christian","Muslim","Sikh","Other"]}
+              onChange={v => setField("religion", v)}
+              placeholder="— Prefer not to say —" />
           </Field>
         </div>
         <div className="hflex mt-4" style={{gap: 28, flexWrap:"wrap", rowGap: 14}}>
@@ -721,14 +719,10 @@ function CollegesTab({ records }) {
           <input type="text" className="input" placeholder="Name, alias, city…" value={query} onChange={e => setQuery(e.target.value)} />
         </Field>
         <Field label="State">
-          <select className="select" value={stateFilter} onChange={e => setStateFilter(e.target.value)}>
-            <option>All</option>{STATES.map(s => <option key={s}>{s}</option>)}
-          </select>
+          <Select value={stateFilter} options={["All", ...STATES]} onChange={setStateFilter} />
         </Field>
         <Field label="Type">
-          <select className="select" value={typeFilter} onChange={e => setTypeFilter(e.target.value)}>
-            <option>All</option>{COLLEGE_TYPES.map(s => <option key={s}>{s}</option>)}
-          </select>
+          <Select value={typeFilter} options={["All", ...COLLEGE_TYPES]} onChange={setTypeFilter} />
         </Field>
       </div>
 

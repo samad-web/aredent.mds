@@ -1,6 +1,52 @@
 /* UI primitives — Inter / orange / clean. Ported from ui.jsx. */
 import React, { useState, useEffect, useMemo, useRef } from "react";
 
+/* Single-value dropdown — visually identical to the multi-select used for
+   specialties/states. Replaces native <select className="select">, whose
+   open option list is drawn by the OS (Segoe UI on Windows, square corners,
+   blue highlight) and can't be styled. Options accept plain strings or
+   {value, label} objects. */
+export function Select({ value, options, onChange, placeholder = "— Select —", className = "" }) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef(null);
+  useEffect(() => {
+    if (!open) return;
+    const h = e => { if (ref.current && !ref.current.contains(e.target)) setOpen(false); };
+    document.addEventListener("mousedown", h);
+    return () => document.removeEventListener("mousedown", h);
+  }, [open]);
+  const opts = (options || []).map(o => typeof o === "object" && o !== null ? o : { value: o, label: o });
+  const selected = opts.find(o => String(o.value) === String(value));
+  return (
+    <div ref={ref} className={"multiselect" + (open ? " open" : "") + (className ? " " + className : "")}>
+      <div className="multiselect-trigger" role="button" tabIndex={0}
+           onClick={() => setOpen(o => !o)}
+           onKeyDown={e => {
+             if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setOpen(o => !o); }
+             else if (e.key === "Escape") setOpen(false);
+           }}>
+        {selected ? <span>{selected.label}</span> : <span className="placeholder">{placeholder}</span>}
+      </div>
+      {open && (
+        <div className="multiselect-panel">
+          {opts.length === 0 && <div className="multiselect-empty">No options available.</div>}
+          {opts.map(o => {
+            const isSelected = String(o.value) === String(value);
+            return (
+              <div key={String(o.value)}
+                   className={"multiselect-option" + (isSelected ? " selected" : "")}
+                   onClick={() => { onChange(o.value); setOpen(false); }}>
+                <span className="tick">{isSelected ? "✓" : ""}</span>
+                <span>{o.label}</span>
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ---------- Numeric formatting -------------------------------------------
 export const fmtRank = (n) => (n == null || isNaN(n)) ? "—" : Math.round(n).toLocaleString("en-IN");
 export const fmtPct  = (p, digits = 0) => (p == null || isNaN(p)) ? "—" : (p * 100).toFixed(digits) + "%";

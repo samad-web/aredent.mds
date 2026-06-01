@@ -3,7 +3,7 @@
 import React, { useMemo } from "react";
 import { STATES } from "../lib/colleges.js";
 import {
-  Field, TierBadge, TierStrip, tierColor, fmtRank,
+  Field, TierBadge, TierStrip, tierColor, fmtRank, Select,
 } from "./ui.jsx";
 
 export function Home({
@@ -88,17 +88,15 @@ export function Home({
               />
             </Field>
             <Field label="Category">
-              <select className="select" value={student.category}
-                      onChange={e => setField("category", e.target.value)}>
-                {["UR", "EWS", "OBC-NCL", "SC", "ST"].map(c => <option key={c}>{c}</option>)}
-              </select>
+              <Select value={student.category}
+                      options={["UR", "EWS", "OBC-NCL", "SC", "ST"]}
+                      onChange={v => setField("category", v)} />
             </Field>
             <Field label="Domicile state" hint="Unlocks state-quota pools">
-              <select className="select" value={student.domicileState || ""}
-                      onChange={e => setField("domicileState", e.target.value)}>
-                <option value="">— None —</option>
-                {STATES.map(s => <option key={s}>{s}</option>)}
-              </select>
+              <Select value={student.domicileState || ""}
+                      options={[{value:"", label:"— None —"}, ...STATES]}
+                      onChange={v => setField("domicileState", v)}
+                      placeholder="— None —" />
             </Field>
           </div>
           <p className="home-hint">

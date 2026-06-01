@@ -3,7 +3,7 @@ import React, { useState, useEffect, useMemo } from "react";
 import {
   fmtRank, fmtPct, fmtInt, tierColor,
   TierBadge, ProbBar, Sparkline, Field, TierStrip, LineChart, HBar, Toggle,
-  RiskFlags, usePagination, Pagination, PageHeader,
+  RiskFlags, usePagination, Pagination, PageHeader, Select,
 } from "./ui.jsx";
 import {
   COLLEGES, STATES, COLLEGE_TYPES, SPECIALTIES_LIST,
@@ -345,19 +345,13 @@ export function CollegeBrowser({ records, student, stream = "PG", onPredict, onV
                    value={query} onChange={e => setQuery(e.target.value)} />
           </Field>
           <Field label="State">
-            <select className="select" value={stateFilter} onChange={e => setStateFilter(e.target.value)}>
-              <option>All</option>{STATES.map(s => <option key={s}>{s}</option>)}
-            </select>
+            <Select value={stateFilter} options={["All", ...STATES]} onChange={setStateFilter} />
           </Field>
           <Field label="Type">
-            <select className="select" value={typeFilter} onChange={e => setTypeFilter(e.target.value)}>
-              <option>All</option>{COLLEGE_TYPES.map(s => <option key={s}>{s}</option>)}
-            </select>
+            <Select value={typeFilter} options={["All", ...COLLEGE_TYPES]} onChange={setTypeFilter} />
           </Field>
           <Field label="Specialty">
-            <select className="select" value={specialtyFilter} onChange={e => setSpecialtyFilter(e.target.value)}>
-              <option>All</option>{SPECIALTIES_LIST.map(s => <option key={s}>{s}</option>)}
-            </select>
+            <Select value={specialtyFilter} options={["All", ...SPECIALTIES_LIST]} onChange={setSpecialtyFilter} />
           </Field>
         </div>
         <div className="hflex mb-4" style={{gap:24, flexWrap:"wrap"}}>
