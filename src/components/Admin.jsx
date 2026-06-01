@@ -518,7 +518,7 @@ export function ProfileTab({ student, setStudent, onContinue, stream = "PG", rec
         <div className="eyebrow mb-3">Identification</div>
         <div className="grid cols-2 tight">
           <Field label="Full name *">
-            <input type="text" className="input" value={student.name || ""} placeholder="e.g. Riya Sharma"
+            <input type="text" className="input" value={student.name || ""} placeholder="e.g. Aakash Kummar"
                    onChange={e => setField("name", e.target.value)} />
           </Field>
           <Field label="Registration number" hint="NEET PG registration / roll no.">
@@ -526,8 +526,9 @@ export function ProfileTab({ student, setStudent, onContinue, stream = "PG", rec
                    onChange={e => setField("regNumber", e.target.value)} />
           </Field>
           <Field label="Mobile number *" hint="10-digit mobile">
-            <input type="tel" className="input num" value={student.mobile || ""} placeholder="+91 9XXXXXXXXX"
-                   onChange={e => setField("mobile", e.target.value)} />
+            <input type="tel" className="input num" value={student.mobile || ""} placeholder="9XXXXXXXXX"
+                   inputMode="numeric" maxLength={10} autoComplete="tel-national"
+                   onChange={e => setField("mobile", e.target.value.replace(/\D/g, "").slice(0, 10))} />
           </Field>
           <Field label="Age">
             <input type="number" className="input num" value={student.age || ""} placeholder="e.g. 26"
