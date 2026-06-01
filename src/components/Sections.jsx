@@ -271,13 +271,41 @@ function ExpandedDetail({ pred, onOpenDeepDive }) {
 // ============================================================
 // College Browser
 // ============================================================
-export function CollegeBrowser({ records, student, onPredict, onViewInfo, interested, onToggleInterested }) {
+export function CollegeBrowser({ records, student, stream = "PG", onPredict, onViewInfo, interested, onToggleInterested }) {
+  const isMds = stream === "MDS";
   const [query, setQuery] = useState("");
   const [stateFilter, setStateFilter] = useState("All");
   const [typeFilter, setTypeFilter] = useState("All");
   const [specialtyFilter, setSpecialtyFilter] = useState("All");
   const [minorityOnly, setMinorityOnly] = useState(false);
-  const colleges = COLLEGES;
+
+  // PG uses the bundled NMC master list (rich metadata). MDS has no bundled
+  // master list — derive the college roster from the loaded records so the
+  // browser actually reflects the dental colleges in the dataset.
+  const colleges = useMemo(() => {
+    if (!isMds) return COLLEGES;
+    const map = new Map();
+    for (const r of records) {
+      if (!r.college) continue;
+      let c = map.get(r.college);
+      if (!c) {
+        c = {
+          id: "mds::" + r.college,
+          name: r.college,
+          state: r.state || "",
+          city: "",
+          type: "Dental",
+          aliases: [],
+          totalPgSeats: 0,
+          pgCoursesOffered: [],
+          isMinorityInstitution: false,
+        };
+        map.set(r.college, c);
+      }
+      if (r.course && !c.pgCoursesOffered.includes(r.course)) c.pgCoursesOffered.push(r.course);
+    }
+    return [...map.values()].sort((a, b) => a.name.localeCompare(b.name));
+  }, [isMds, records]);
 
   const dataByCollege = useMemo(() => {
     const map = new Map();
@@ -289,13 +317,15 @@ export function CollegeBrowser({ records, student, onPredict, onViewInfo, intere
   }, [records]);
 
   const filtered = useMemo(() => {
-    let list = colleges.filter(c => collegeMatchesQuery(c, query));
+    let list = isMds
+      ? colleges.filter(c => !query || c.name.toLowerCase().includes(query.toLowerCase()))
+      : colleges.filter(c => collegeMatchesQuery(c, query));
     if (stateFilter !== "All") list = list.filter(c => c.state === stateFilter);
-    if (typeFilter !== "All") list = list.filter(c => c.type === typeFilter);
+    if (typeFilter !== "All")  list = list.filter(c => c.type === typeFilter);
     if (specialtyFilter !== "All") list = list.filter(c => (c.pgCoursesOffered || []).includes(specialtyFilter));
-    if (minorityOnly) list = list.filter(c => c.isMinorityInstitution);
+    if (minorityOnly && !isMds) list = list.filter(c => c.isMinorityInstitution);
     return list;
-  }, [colleges, query, stateFilter, typeFilter, specialtyFilter, minorityOnly]);
+  }, [colleges, query, stateFilter, typeFilter, specialtyFilter, minorityOnly, isMds]);
 
   const pager = usePagination(filtered, 25);
 
@@ -303,8 +333,10 @@ export function CollegeBrowser({ records, student, onPredict, onViewInfo, intere
     <div className="page-wrap">
       <div className="shell">
         <PageHeader eyebrow="Reference" title="College Browser"
-          subtitle={`${colleges.length.toLocaleString("en-IN")} NMC PG colleges. Search by name or alias. Predictable rows have uploaded data; the rest show metadata and peer suggestions.`}
-          right={<span className="footnote mono">v{COLLEGES_DATA_VERSION} · {COLLEGES_LAST_UPDATED}</span>}
+          subtitle={isMds
+            ? `${colleges.length.toLocaleString("en-IN")} dental colleges from the loaded NEET-MDS data.`
+            : `${colleges.length.toLocaleString("en-IN")} NMC PG colleges. Search by name or alias. Predictable rows have uploaded data; the rest show metadata and peer suggestions.`}
+          right={isMds ? null : <span className="footnote mono">v{COLLEGES_DATA_VERSION} · {COLLEGES_LAST_UPDATED}</span>}
         />
 
         <div className="grid cols-4 mb-4" style={{gap:12}}>
@@ -329,7 +361,7 @@ export function CollegeBrowser({ records, student, onPredict, onViewInfo, intere
           </Field>
         </div>
         <div className="hflex mb-4" style={{gap:24, flexWrap:"wrap"}}>
-          <Toggle checked={minorityOnly} onChange={setMinorityOnly} label="Minority institutions only" />
+          {!isMds && <Toggle checked={minorityOnly} onChange={setMinorityOnly} label="Minority institutions only" />}
           <span className="footnote" style={{marginLeft:"auto"}}>{filtered.length.toLocaleString("en-IN")} colleges</span>
         </div>
 

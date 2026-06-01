@@ -275,18 +275,25 @@ export function predictCollegeCourse(college, course, student, allRecords, _opti
   };
 }
 
-export function predictAll(student, records) {
+export function predictAll(student, records, options = {}) {
   // Pre-index once: group records by (canonical-college, course). Resolving
   // each free-text college name to its canonical master-list entry collapses
   // MCC's verbose strings ("Maulana Azad Medical College, Delhi (NCT)") down
   // to the same bucket as our bundled name ("Maulana Azad Medical College"),
   // letting predictions show with rich metadata. Names that don't resolve are
   // grouped by their original string (predictions still work).
+  //
+  // The PG master list has no dental entries, so MDS records would otherwise
+  // map onto medical look-alikes in the same city ("Government Dental College,
+  // Kozhikode" → "Government Medical College, Kozhikode"). Stream='MDS' opts
+  // out of canonicalization entirely and groups by the raw record strings.
+  const { stream = "PG" } = options;
+  const useCanonical = stream === "PG";
   const SEP = "␟"; // unit separator
   const byCC = new Map();
   for (const r of records) {
-    const canonCollege = canonicalCollegeName(r.college);
-    const canonCourse = canonicalCourseName(r.course);
+    const canonCollege = useCanonical ? canonicalCollegeName(r.college) : r.college;
+    const canonCourse = useCanonical ? canonicalCourseName(r.course) : r.course;
     const k = canonCollege + SEP + canonCourse;
     let arr = byCC.get(k);
     if (!arr) { arr = []; byCC.set(k, arr); }

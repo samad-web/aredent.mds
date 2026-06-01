@@ -212,9 +212,9 @@ export default function App() {
   ].join("|");
   const predictions = useMemo(() => {
     if (!filteredRecords.length || !student.neetPgRank) return [];
-    return predictAll(student, filteredRecords);
+    return predictAll(student, filteredRecords, { stream });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [filteredRecords, modeledSig]);
+  }, [filteredRecords, modeledSig, stream]);
 
   const onOpenDeepDive = (pred) => {
     const college = COLLEGES.find(c => c.name === pred.college);
@@ -282,6 +282,7 @@ export default function App() {
         <CollegeBrowser
           records={filteredRecords}
           student={student}
+          stream={stream}
           onPredict={onPredictCollege}
           onViewInfo={onViewInfo}
           interested={interested}
