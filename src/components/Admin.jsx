@@ -657,9 +657,11 @@ function MultiSelect({ options, value, onChange, placeholder }) {
   }, []);
   const toggle = (o) => onChange(value.includes(o) ? value.filter(x => x !== o) : [...value, o]);
   return (
-    <div ref={ref} style={{position: "relative"}}>
-      <div className="input" onClick={() => setOpen(o => !o)} style={{cursor:"pointer", minHeight: 42, display:"flex", flexWrap:"wrap", gap:4, alignItems:"center"}}>
-        {value.length === 0 && <span style={{color:"var(--ink-faint)"}}>{placeholder}</span>}
+    <div ref={ref} className={"multiselect" + (open ? " open" : "")}>
+      <div className="multiselect-trigger" role="button" tabIndex={0}
+           onClick={() => setOpen(o => !o)}
+           onKeyDown={e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setOpen(o => !o); } }}>
+        {value.length === 0 && <span className="placeholder">{placeholder}</span>}
         {value.map(v => (
           <span key={v} className="chip purple" style={{fontSize: 11}} onClick={e => { e.stopPropagation(); toggle(v); }}>
             {v} <span className="x">✕</span>
@@ -667,20 +669,17 @@ function MultiSelect({ options, value, onChange, placeholder }) {
         ))}
       </div>
       {open && (
-        <div className="panel" style={{position:"absolute", top: "calc(100% + 4px)", left: 0, right: 0, zIndex: 20, padding: 8, maxHeight: 220, overflow: "auto", boxShadow: "0 8px 24px rgba(0,0,0,0.12)"}}>
-          {options.map(o => (
-            <div key={o} onClick={() => toggle(o)} style={{
-              padding: "7px 10px", cursor: "pointer", fontSize: 13, borderRadius: 6,
-              background: value.includes(o) ? "var(--brand-orange-soft)" : "transparent",
-              color: value.includes(o) ? "var(--brand-orange)" : "var(--ink)",
-              fontWeight: value.includes(o) ? 600 : 400,
-            }}>
-              <span style={{display:"inline-block", width: 14}}>
-                {value.includes(o) ? "✓" : ""}
-              </span>
-              {o}
-            </div>
-          ))}
+        <div className="multiselect-panel">
+          {options.length === 0 && <div className="multiselect-empty">No options available.</div>}
+          {options.map(o => {
+            const isSelected = value.includes(o);
+            return (
+              <div key={o} className={"multiselect-option" + (isSelected ? " selected" : "")} onClick={() => toggle(o)}>
+                <span className="tick">{isSelected ? "✓" : ""}</span>
+                <span>{o}</span>
+              </div>
+            );
+          })}
         </div>
       )}
     </div>
