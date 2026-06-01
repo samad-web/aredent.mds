@@ -86,8 +86,7 @@ html { scroll-behavior: smooth; }
   backdrop-filter: saturate(150%) blur(0px); border-bottom: 1px solid var(--rule); height: 64px; }
 .topnav-inner { height: 100%; display: flex; align-items: center; justify-content: space-between; gap: 24px; }
 .topnav-brand { display: flex; align-items: center; gap: 10px; cursor: pointer; user-select: none; }
-.brandmark { width: 28px; height: 28px; border-radius: 7px; background: var(--brand-orange);
-  display: grid; place-items: center; color: white; font-weight: 800; font-size: 14px; letter-spacing: -0.02em; }
+.brandmark { width: 30px; height: 30px; border-radius: 7px; object-fit: contain; display: block; background: white; }
 .brandname { font-family: var(--font-display); font-weight: 800; font-size: 18px; letter-spacing: -0.02em; color: var(--navy); }
 .brandname em { color: var(--brand-orange); font-style: normal; }
 .topnav-links { display: flex; gap: 4px; }
@@ -96,6 +95,29 @@ html { scroll-behavior: smooth; }
   transition: color var(--duration-fast) var(--ease), background var(--duration-fast) var(--ease); white-space: nowrap; }
 .topnav-link:hover { color: var(--ink); background: var(--bg-sunken); }
 .topnav-link.active { color: var(--navy); background: var(--brand-orange-soft); }
+
+/* Stream toggle (NEET PG / MDS) */
+.stream-toggle { display: inline-flex; background: var(--bg-sunken); border: 1px solid var(--rule);
+  border-radius: 9px; padding: 3px; gap: 2px; flex-shrink: 0; }
+.stream-opt { font-size: 12px; font-weight: 600; letter-spacing: 0.02em; color: var(--ink-muted);
+  padding: 6px 14px; border: none; background: transparent; cursor: pointer; border-radius: 7px;
+  transition: color var(--duration-fast) var(--ease), background var(--duration-fast) var(--ease); white-space: nowrap; }
+.stream-opt:hover { color: var(--ink); }
+.stream-opt.active { color: white; background: var(--brand-orange); box-shadow: 0 1px 2px rgba(0,0,0,0.12); }
+@media (max-width: 720px) { .stream-opt { padding: 6px 10px; font-size: 11px; } }
+
+/* Profile → predictions CTA */
+.profile-cta { position: sticky; bottom: 0; margin-top: 24px; display: flex; align-items: center;
+  justify-content: space-between; gap: 20px; flex-wrap: wrap;
+  background: rgba(255,255,255,0.96); backdrop-filter: blur(4px);
+  border: 1px solid var(--rule); border-radius: 12px; padding: 16px 20px;
+  box-shadow: 0 -2px 12px rgba(0,0,0,0.06); }
+.profile-cta-text { font-size: 13px; color: var(--ink-muted); flex: 1; min-width: 240px; }
+.profile-cta .btn:disabled { opacity: 0.45; cursor: not-allowed; }
+
+/* Profile gate (shown on gated routes until the profile is complete) */
+.profile-gate { text-align: center; max-width: 560px; margin: 64px auto; padding: 40px 32px;
+  background: var(--bg-soft); border: 1px solid var(--rule); border-radius: 16px; }
 
 /* ----- Year bar (analysis year + seat supply stat) ----------- */
 .yearbar { background: var(--bg-soft); border-bottom: 1px solid var(--rule); }

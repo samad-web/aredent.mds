@@ -9,6 +9,7 @@
 create table if not exists public.mcc_sources (
   id            bigint generated always as identity primary key,
   source        text        not null default 'MCC',
+  stream        text        not null default 'PG',  -- 'PG' (NEET-PG) | 'MDS'
   url           text,
   year          int         not null,
   round         text        not null,
@@ -23,19 +24,26 @@ create table if not exists public.mcc_sources (
 create table if not exists public.allotment_records (
   id         bigint generated always as identity primary key,
   source_id  bigint  references public.mcc_sources(id) on delete cascade,
+  stream     text    not null default 'PG',  -- 'PG' (NEET-PG) | 'MDS'
   year       int     not null,
   round      text    not null,
   rank       int     not null,
   college    text    not null,
   course     text    not null,
   quota      text    not null,
-  category   text    not null,
+  category   text,    -- nullable: MDS admitted-lists carry no category
   state      text,
   is_pwbd    boolean not null default false,
   created_at timestamptz not null default now()
 );
 
+-- Idempotent upgrades for databases created before the MDS work.
+alter table public.mcc_sources       add column if not exists stream text not null default 'PG';
+alter table public.allotment_records add column if not exists stream text not null default 'PG';
+alter table public.allotment_records alter column category drop not null;
+
 create index if not exists idx_allotment_year            on public.allotment_records (year);
+create index if not exists idx_allotment_stream          on public.allotment_records (stream);
 create index if not exists idx_allotment_college_course  on public.allotment_records (college, course);
 create index if not exists idx_allotment_quota_category  on public.allotment_records (quota, category);
 create index if not exists idx_allotment_source          on public.allotment_records (source_id);

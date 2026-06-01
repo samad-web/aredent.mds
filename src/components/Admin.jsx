@@ -9,6 +9,7 @@ import {
 import { generateSampleData, makeSampleCsv } from "../lib/sampleData.js";
 import { normalizeCategory, normalizeQuota, normalizeRound, normalizeBool } from "../lib/normalize.js";
 import { isSupabaseConfigured, fetchAllotmentRecords } from "../lib/supabase.js";
+import { isProfileComplete, missingProfileFields } from "../lib/profile.js";
 
 const ADMIN_EMAIL = "admin@ardent.mds";
 const ADMIN_PASS = "Admin@123";
@@ -130,8 +131,8 @@ function AdminLogin({ onAuthed, onClose }) {
     <div style={{padding: "48px 32px", maxWidth: 480, margin: "auto", width: "100%"}}>
       <div style={{display:"flex", justifyContent:"space-between", alignItems:"flex-start", marginBottom: 36}}>
         <div className="topnav-brand" style={{cursor:"default"}}>
-          <span className="brandmark">A</span>
-          <span className="brandname"><em>Ardent</em> MDS</span>
+          <img className="brandmark" src="/logo.jpg" alt="Ardent" />
+          <span className="brandname"><em>Ardent</em></span>
         </div>
         <button className="btn ghost sm" onClick={onClose}>Close ✕</button>
       </div>
@@ -495,19 +496,21 @@ function AdminFilePanel({ file, onMappingChange, onCommit, onDiscard }) {
   );
 }
 
-export function ProfileTab({ student, setStudent }) {
+export function ProfileTab({ student, setStudent, onContinue }) {
   const setField = (k, v) => setStudent(s => ({...s, [k]: v}));
+  const missing = missingProfileFields(student);
+  const complete = missing.length === 0;
   return (
     <div>
       <div className="mb-6">
         <h3 className="h3" style={{margin:0}}>Candidate profile</h3>
-        <p className="subtitle" style={{margin:"6px 0 0", fontSize:14}}>Every field has a measurable effect on rank-based allotment. Religion is the one exception — used solely to surface minority-institution eligibility, never as a probability multiplier.</p>
+        <p className="subtitle" style={{margin:"6px 0 0", fontSize:14}}>Complete the required fields (marked <span style={{color:"var(--brand-orange)"}}>*</span>) to generate your predictions. Every modelled field affects rank-based allotment; religion is the one exception — used solely to surface minority-institution eligibility.</p>
       </div>
 
       <div className="panel mb-6">
         <div className="eyebrow mb-3">Identification</div>
         <div className="grid cols-2 tight">
-          <Field label="Full name">
+          <Field label="Full name *">
             <input type="text" className="input" value={student.name || ""} placeholder="e.g. Riya Sharma"
                    onChange={e => setField("name", e.target.value)} />
           </Field>
@@ -515,7 +518,7 @@ export function ProfileTab({ student, setStudent }) {
             <input type="text" className="input mono" value={student.regNumber || ""} placeholder="e.g. 240XXXXXXX"
                    onChange={e => setField("regNumber", e.target.value)} />
           </Field>
-          <Field label="Mobile number">
+          <Field label="Mobile number *" hint="10-digit mobile">
             <input type="tel" className="input num" value={student.mobile || ""} placeholder="+91 9XXXXXXXXX"
                    onChange={e => setField("mobile", e.target.value)} />
           </Field>
@@ -548,7 +551,7 @@ export function ProfileTab({ student, setStudent }) {
       <div className="panel mb-6">
         <div className="eyebrow mb-3">Primary inputs <span style={{color:"var(--brand-orange)"}}>· modelled</span></div>
         <div className="grid cols-2 tight">
-          <Field label="NEET PG Rank" hint={rankError(student.neetPgRank) || "Your All India Rank (1 – 250,000)"}>
+          <Field label="NEET PG / MDS Rank *" hint={rankError(student.neetPgRank) || "Your All India Rank (1 – 250,000)"}>
             <input type="number" className="input num"
                    value={student.neetPgRank || ""} placeholder="e.g. 12847"
                    min="1" max="250000" inputMode="numeric"
@@ -563,9 +566,9 @@ export function ProfileTab({ student, setStudent }) {
               {["UR","EWS","OBC-NCL","SC","ST"].map(c => <option key={c}>{c}</option>)}
             </select>
           </Field>
-          <Field label="Domicile state" hint="Required for state quota pools">
+          <Field label="Domicile state *" hint="Required for state quota pools">
             <select className="select" value={student.domicileState || ""} onChange={e => setField("domicileState", e.target.value)}>
-              <option value="">— None —</option>
+              <option value="">— Select —</option>
               {STATES.map(s => <option key={s}>{s}</option>)}
             </select>
           </Field>
@@ -618,6 +621,20 @@ export function ProfileTab({ student, setStudent }) {
           </div>
         </div>
       </div>
+
+      {onContinue && (
+        <div className="profile-cta">
+          <div className="profile-cta-text">
+            {complete
+              ? <span style={{color:"var(--tier-safe)", fontWeight:600}}>✓ Profile complete — you're ready.</span>
+              : <span>Fill the required fields to continue: <strong>{missing.map(f => f.label).join(", ")}</strong></span>}
+          </div>
+          <button className="btn primary" disabled={!complete}
+                  onClick={() => complete && onContinue()}>
+            Continue to predictions →
+          </button>
+        </div>
+      )}
     </div>
   );
 }

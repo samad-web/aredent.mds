@@ -29,6 +29,7 @@ import { fork } from "node:child_process";
 import {
   normalizeRound,
 } from "../../src/lib/normalize.js";
+import { parseMdsText, isMdsPdf } from "./mds.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -374,10 +375,18 @@ export async function scrapeMccPdf({ url, year, round, force = false }) {
   const textResult = await extractTextInWorker(buf);
   const parsedMs = Date.now() - t0 - downloadedMs;
 
-  const { records, skipped } = parsePdfText(textResult.text || "", { year, round });
+  // Detect dental (NEET-MDS) PDFs and route to the MDS parser; otherwise use
+  // the NEET-PG (medical) parser. Stream is persisted so the client can filter.
+  const text = textResult.text || "";
+  const isMds = isMdsPdf(text);
+  const { records, skipped } = isMds
+    ? parseMdsText(text, { year, round })
+    : parsePdfText(text, { year, round });
+  const stream = isMds ? "MDS" : "PG";
 
   const payload = {
     source: "MCC",
+    stream,
     url,
     year: parseInt(year, 10),
     round: normalizeRound(round),
@@ -406,8 +415,9 @@ export async function loadAllCachedMccRecords() {
     try {
       const raw = await fs.readFile(path.join(CACHE_DIR, f), "utf8");
       const payload = JSON.parse(raw);
-      records.push(...(payload.records || []));
-      sources.push({ file: f, count: payload.recordCount, year: payload.year, round: payload.round, url: payload.url });
+      const stream = payload.stream || "PG";
+      for (const r of payload.records || []) records.push(r.stream ? r : { ...r, stream });
+      sources.push({ file: f, count: payload.recordCount, stream, year: payload.year, round: payload.round, url: payload.url });
     } catch (e) {
       // Skip corrupt cache file rather than crashing boot.
       // eslint-disable-next-line no-console

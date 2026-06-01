@@ -20,6 +20,7 @@ export async function syncPayloadToSupabase(payload) {
     .from("mcc_sources")
     .upsert({
       source: payload.source || "MCC",
+      stream: payload.stream || "PG",
       url: payload.url,
       year: payload.year,
       round: payload.round,
@@ -36,11 +37,13 @@ export async function syncPayloadToSupabase(payload) {
   // Replace this source's rows so re-imports don't duplicate.
   await serverSupabase.from("allotment_records").delete().eq("source_id", src.id);
 
+  const streamDefault = payload.stream || "PG";
   const rows = (payload.records || []).map(r => ({
     source_id: src.id,
+    stream: r.stream || streamDefault,
     year: r.year, round: r.round, rank: r.rank,
     college: r.college, course: r.course,
-    quota: r.quota, category: r.category,
+    quota: r.quota, category: r.category ?? null,
     state: r.state ?? null,
     is_pwbd: !!r.isPwBD,
   }));

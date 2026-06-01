@@ -14,6 +14,7 @@ import { predictAll } from "./lib/algo.js";
 import { generateSampleData } from "./lib/sampleData.js";
 import { usePersistentState, hasPersistedValue } from "./lib/persist.js";
 import { isSupabaseConfigured, fetchAllotmentRecords } from "./lib/supabase.js";
+import { isProfileComplete } from "./lib/profile.js";
 
 function Footer() {
   return (
@@ -31,6 +32,26 @@ function Footer() {
   );
 }
 
+function ProfileGate({ onGoToProfile }) {
+  return (
+    <div className="page-wrap">
+      <div className="shell">
+        <div className="profile-gate">
+          <div className="eyebrow" style={{color:"var(--brand-orange)"}}>Almost there</div>
+          <h2 className="h2" style={{margin:"8px 0 6px"}}>Complete your profile to see predictions</h2>
+          <p className="subtitle" style={{maxWidth: 480, margin:"0 auto"}}>
+            We tailor every prediction to your rank, category, domicile and eligibility.
+            Fill in your candidate profile to unlock your personalised results.
+          </p>
+          <button className="btn primary" style={{marginTop: 20}} onClick={onGoToProfile}>
+            Complete profile →
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 const VALID_ROUTES = ["home", "profile", "colleges", "predictions", "methodology"];
 
 const DEFAULT_STUDENT = {
@@ -43,6 +64,11 @@ const DEFAULT_STUDENT = {
 
 export default function App() {
   const [records, setRecords] = usePersistentState("records", []);
+  // Which counselling stream is in view: "MDS" (dental) | "PG" (NEET-PG).
+  // Defaults to MDS. `loadedStream` tracks which stream the persisted records
+  // belong to, so a refresh is instant but a toggle triggers a refetch.
+  const [stream, setStream] = usePersistentState("stream", "MDS");
+  const [loadedStream, setLoadedStream] = usePersistentState("loadedStream", null);
   const [student, setStudent] = usePersistentState("student", DEFAULT_STUDENT);
   const [interested, setInterested] = usePersistentState(
     "interested",
@@ -69,7 +95,12 @@ export default function App() {
   const readHash = () => (window.location.hash || "").replace("#", "");
   const [route, setRoute] = useState(() => {
     const h = readHash();
-    return VALID_ROUTES.includes(h) ? h : "home";
+    const initial = VALID_ROUTES.includes(h) ? h : "home";
+    // First-time visitors (incomplete profile) open on the profile step.
+    if (!isProfileComplete(student) && ["home", "predictions", "colleges"].includes(initial)) {
+      return "profile";
+    }
+    return initial;
   });
 
   useEffect(() => {
@@ -96,38 +127,37 @@ export default function App() {
     return () => window.removeEventListener("hashchange", onHash);
   }, []);
 
+  // Predictions require a complete candidate profile. Rather than silently
+  // redirecting (which makes the nav feel broken), the prediction-bearing
+  // routes render a gate prompt below until the profile is filled.
+  const profileComplete = isProfileComplete(student);
+
   // Bootstrap demo data on first paint only if the user hasn't loaded anything yet.
   // Respect persisted records/profile across refreshes.
   useEffect(() => {
-    if (records.length > 0) return; // user already has data
-    const hadProfile = hasPersistedValue("student");
+    // Persisted records already match the selected stream → instant, no refetch.
+    if (records.length > 0 && loadedStream === stream) return;
     let cancelled = false;
     setLoading(true);
     (async () => {
       try {
         if (isSupabaseConfigured) {
-          // Client-direct: paginate the allotment table straight from Supabase.
-          const recs = await fetchAllotmentRecords();
+          // Client-direct: paginate the selected stream straight from Supabase.
+          const recs = await fetchAllotmentRecords({ stream });
           if (cancelled) return;
-          if (recs.length > 0) {
-            setRecords(recs);
-          } else {
-            setRecords(generateSampleData());
-          }
+          setRecords(recs.length > 0 ? recs : generateSampleData());
+          setLoadedStream(stream);
         } else {
           // Fallback: server-mediated /api/records (MCC cache or synthetic sample).
-          const res = await fetch("/api/records");
+          const res = await fetch(`/api/records?stream=${stream}`);
           if (!res.ok) throw new Error(`API ${res.status}`);
           const json = await res.json();
           if (cancelled) return;
-          if (Array.isArray(json.records) && json.records.length > 0) {
-            setRecords(json.records);
-            if (json.source === "mcc") {
-              setBootError(`Loaded ${json.count.toLocaleString("en-IN")} real allotment rows from MCC.`);
-            }
-          } else {
-            setRecords(generateSampleData());
-          }
+          const recs = Array.isArray(json.records)
+            ? json.records.filter(r => !r.stream || r.stream === stream)
+            : [];
+          setRecords(recs.length > 0 ? recs : generateSampleData());
+          setLoadedStream(stream);
         }
       } catch (err) {
         if (cancelled) return;
@@ -136,14 +166,10 @@ export default function App() {
       } finally {
         if (!cancelled) setLoading(false);
       }
-      // Only seed a demo rank if the user has no saved profile yet.
-      if (!cancelled && !hadProfile) {
-        setStudent(s => ({ ...s, neetPgRank: 8500, domicileState: "Maharashtra" }));
-      }
     })();
     return () => { cancelled = true; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [stream]);
 
   // Navigating to the admin hash is what opens the panel — pushState so the
   // user can use the browser back button to dismiss it.
@@ -209,7 +235,7 @@ export default function App() {
 
   return (
     <>
-      <TopNav route={route} onRoute={setRoute} />
+      <TopNav route={route} onRoute={setRoute} stream={stream} onStream={setStream} />
       {availableYears.length > 0 && (
         <YearBar
           analysisYear={analysisYear}
@@ -219,23 +245,31 @@ export default function App() {
         />
       )}
 
-      {route === "home" && (
+      {/* Prediction-bearing routes are gated on a complete profile. */}
+      {["home", "predictions", "colleges"].includes(route) && !profileComplete && (
+        <ProfileGate onGoToProfile={() => setRoute("profile")} />
+      )}
+
+      {route === "home" && profileComplete && (
         <Home
           predictions={predictions}
           student={student}
           setStudent={setStudent}
           hasData={filteredRecords.length > 0}
           analysisYear={analysisYear}
+          stream={stream}
+          availableYears={availableYears}
           onOpenDeepDive={onOpenDeepDive}
           onRoute={setRoute}
         />
       )}
 
-      {route === "predictions" && (
+      {route === "predictions" && profileComplete && (
         <PredictionsDashboard
           records={filteredRecords}
           predictions={predictions}
           student={student}
+          stream={stream}
           onOpenDeepDive={onOpenDeepDive}
           onOpenAdmin={() => {
             if (!records.length) openAdmin("data");
@@ -244,7 +278,7 @@ export default function App() {
         />
       )}
 
-      {route === "colleges" && (
+      {route === "colleges" && profileComplete && (
         <CollegeBrowser
           records={filteredRecords}
           student={student}
@@ -259,7 +293,7 @@ export default function App() {
         <div className="page-wrap">
           <div className="shell">
             <div className="eyebrow" style={{color:"var(--brand-orange)", marginBottom: 6}}>Candidate</div>
-            <ProfileTab student={student} setStudent={setStudent} />
+            <ProfileTab student={student} setStudent={setStudent} onContinue={() => setRoute("predictions")} />
           </div>
         </div>
       )}

@@ -8,11 +8,18 @@ import {
 
 export function Home({
   predictions, student, setStudent, hasData, analysisYear,
+  stream = "PG", availableYears = [],
   onOpenDeepDive, onRoute,
 }) {
   const setField = (k, v) => setStudent(s => ({ ...s, [k]: v }));
   const ready = hasData && student.neetPgRank > 0;
   const firstName = (student.name || "").trim().split(/\s+/)[0];
+  const isMds = stream === "MDS";
+  const examName = isMds ? "NEET MDS" : "NEET PG";
+  const yearSpan = availableYears.length
+    ? (availableYears.length === 1 ? `${availableYears[0]}` : `${availableYears[0]}–${availableYears[availableYears.length - 1]}`)
+    : "prior-year";
+  const isForecast = analysisYear === "forecast";
 
   const tierCounts = useMemo(() => {
     const c = { Safe: 0, Likely: 0, Target: 0, Reach: 0, Unlikely: 0 };
@@ -35,7 +42,7 @@ export function Home({
         <div className="hero-meta">
           <div className="left">
             <span className="pip" />
-            <span>NEET PG · {analysisYear === "forecast" ? "2026 Prediction" : `${analysisYear} Backtest`}</span>
+            <span>{examName} · {isForecast ? "2026 Prediction" : `${analysisYear} Backtest`}</span>
           </div>
           <div className="right">
             {ready
@@ -46,24 +53,30 @@ export function Home({
 
         {/* ====== Input panel (always visible) ====== */}
         <div className="home-form">
-          <div className="brand-row"><span className="wordmark">ARDENT MDS</span></div>
+          <div className="brand-row"><span className="wordmark">ARDENT</span></div>
           <span className="wordmark-underline" />
           {firstName && <p className="home-greeting">Welcome back, {firstName}.</p>}
           <h1 className="home-title">Where can your rank get you?</h1>
           <p className="home-sub">
-            Enter your NEET PG rank — predictions update instantly across every
-            college and quota you're eligible for.
+            Enter your {examName} rank — predictions update instantly across every
+            college and {isMds ? "specialty" : "quota"} you're eligible for.
           </p>
           <p className="home-scope">
-            <strong>Coverage:</strong> MCC counselling only — All-India Quota,
+            <strong>Coverage:</strong> MCC {isMds ? "NEET-MDS (dental)" : ""} counselling only — All-India Quota,
             Deemed &amp; Central university seats. State-quota government seats
-            (~50% of govt seats, filled via separate state counselling) and most
-            DNB seats are not included.
+            (filled via separate state counselling){isMds ? "" : " and most DNB seats"} are not included.
           </p>
+          {isForecast && (
+            <p className="home-scope" style={{marginTop: 8}}>
+              <strong>Note:</strong> {examName} 2026 allotments aren't published yet
+              {isMds ? " (results due ~2 Jun 2026; MCC counselling follows)" : ""} — this is a
+              statistical projection from {yearSpan} allotment data, not official results.
+            </p>
+          )}
 
           <hr className="rule" />
           <div className="home-inputs">
-            <Field label="NEET PG All India Rank *" hint="Your AIR (1 – 250,000)">
+            <Field label={`${examName} All India Rank *`} hint="Your AIR (1 – 250,000)">
               <input
                 type="number" className="input num" placeholder="e.g. 12847"
                 value={student.neetPgRank || ""} min="1" max="250000" inputMode="numeric"

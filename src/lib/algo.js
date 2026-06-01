@@ -103,7 +103,11 @@ export function eligiblePools(student) {
 function filterPool(records, pool) {
   return records.filter(r => {
     if (r.quota !== pool.quota) return false;
-    if (r.category !== pool.category) return false;
+    // Unknown category (MDS R1 seats / admitted-lists carry no category in the
+    // source) is treated as open competition → feeds the UR pool only, rather
+    // than being dropped from every pool. PG rows are always categorized.
+    const cat = r.category ?? "UR";
+    if (cat !== pool.category) return false;
     if (pool.state && r.state !== pool.state) return false;
     if (pool.requirePwBD && !r.isPwBD) return false;
     if (pool.isInService && !r.isInService) return false;

@@ -98,12 +98,14 @@ export function Tip({ children, text }) {
 }
 
 // ---------- Field ---------------------------------------------------------
-export function Field({ label, hint, children }) {
+export function Field({ label, hint, error, children }) {
   return (
-    <label className="field">
+    <label className={`field${error ? " has-error" : ""}`}>
       <span className="field-label">{label}</span>
       {children}
-      {hint && <span className="field-hint">{hint}</span>}
+      {(error || hint) && (
+        <span className={`field-hint${error ? " error" : ""}`}>{error || hint}</span>
+      )}
     </label>
   );
 }
@@ -242,7 +244,28 @@ export function Segment({ options, value, onChange }) {
 
 // ---------- Top nav -------------------------------------------------------
 // Admin is intentionally NOT in the nav — it's reached by navigating to /#admin.
-export function TopNav({ route, onRoute }) {
+export function StreamToggle({ stream, onStream }) {
+  const opts = [
+    { k: "MDS", label: "MDS" },
+    { k: "PG", label: "NEET PG" },
+  ];
+  return (
+    <div className="stream-toggle" role="group" aria-label="Counselling stream">
+      {opts.map(o => (
+        <button
+          key={o.k}
+          className={`stream-opt ${stream === o.k ? "active" : ""}`}
+          onClick={() => onStream(o.k)}
+          aria-pressed={stream === o.k}
+        >
+          {o.label}
+        </button>
+      ))}
+    </div>
+  );
+}
+
+export function TopNav({ route, onRoute, stream, onStream }) {
   const items = [
     { k: "home",        label: "Home" },
     { k: "profile",     label: "Profile" },
@@ -254,8 +277,8 @@ export function TopNav({ route, onRoute }) {
     <nav className="topnav">
       <div className="shell topnav-inner">
         <div className="topnav-brand" onClick={() => onRoute("home")}>
-          <span className="brandmark">A</span>
-          <span className="brandname"><em>Ardent</em> MDS</span>
+          <img className="brandmark" src="/logo.jpg" alt="Ardent" />
+          <span className="brandname"><em>Ardent</em></span>
         </div>
         <div className="topnav-links">
           {items.map(s => (
@@ -266,6 +289,7 @@ export function TopNav({ route, onRoute }) {
             </a>
           ))}
         </div>
+        {onStream && <StreamToggle stream={stream} onStream={onStream} />}
       </div>
     </nav>
   );

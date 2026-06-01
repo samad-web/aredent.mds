@@ -14,7 +14,9 @@ import { runBacktest, normalCdf } from "../lib/algo.js";
 // ============================================================
 // Predictions Dashboard
 // ============================================================
-export function PredictionsDashboard({ records, predictions, student, onOpenDeepDive, onOpenAdmin }) {
+export function PredictionsDashboard({ records, predictions, student, stream = "PG", onOpenDeepDive, onOpenAdmin }) {
+  const isMds = stream === "MDS";
+  const examName = isMds ? "NEET MDS" : "NEET PG";
   const [sortKey, setSortKey] = useState("P");
   const [sortDir, setSortDir] = useState("desc");
   const [filterTier, setFilterTier] = useState("All");
@@ -91,7 +93,7 @@ export function PredictionsDashboard({ records, predictions, student, onOpenDeep
             <div className="big">{!records.length ? "No data loaded yet" : "No rank entered"}</div>
             <p style={{maxWidth: 480, margin:"0 auto"}}>{!records.length
               ? "Sign in to the Admin panel to upload an allotment file, or load the sample dataset."
-              : "Head to the Home tab and enter your NEET PG rank to see predictions."}</p>
+              : `Head to the Home tab and enter your ${examName} rank to see predictions.`}</p>
             <button className="btn primary sm mt-4" onClick={onOpenAdmin}>
               {!records.length ? "Open admin »" : "Go to home »"}
             </button>
@@ -135,8 +137,9 @@ export function PredictionsDashboard({ records, predictions, student, onOpenDeep
         />
 
         <p className="scope-note mb-4">
-          <strong>Scope:</strong> MCC counselling seats only (All-India Quota, Deemed &amp; Central universities).
-          State-quota government seats and most DNB seats go through separate counselling and are not predicted here.
+          <strong>Scope:</strong> MCC {isMds ? "NEET-MDS (dental) " : ""}counselling seats only (All-India Quota, Deemed &amp; Central universities).
+          State-quota government seats{isMds ? "" : " and most DNB seats"} go through separate counselling and are not predicted here.
+          {" "}2026 is a projection from historical allotments — official {examName} 2026 results are not yet published.
         </p>
 
         <div className="mb-6">
