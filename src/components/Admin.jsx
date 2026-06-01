@@ -496,10 +496,18 @@ function AdminFilePanel({ file, onMappingChange, onCommit, onDiscard }) {
   );
 }
 
-export function ProfileTab({ student, setStudent, onContinue }) {
+export function ProfileTab({ student, setStudent, onContinue, stream = "PG", records = [] }) {
   const setField = (k, v) => setStudent(s => ({...s, [k]: v}));
   const missing = missingProfileFields(student);
   const complete = missing.length === 0;
+  // PG ships a curated medical-specialty list; MDS has no bundled list, so
+  // derive dental specialties from whatever courses the loaded records carry.
+  const specialtyOptions = useMemo(() => {
+    if (stream !== "MDS") return SPECIALTIES_LIST;
+    const set = new Set();
+    for (const r of records) if (r.course) set.add(r.course);
+    return [...set].sort((a, b) => a.localeCompare(b));
+  }, [stream, records]);
   return (
     <div>
       <div className="mb-6">
@@ -594,7 +602,7 @@ export function ProfileTab({ student, setStudent, onContinue }) {
       <div className="panel mb-6">
         <div className="eyebrow mb-3">Optional preferences</div>
         <Field label="Specialties of interest">
-          <MultiSelect options={SPECIALTIES_LIST} value={student.preferredSpecialties || []}
+          <MultiSelect options={specialtyOptions} value={student.preferredSpecialties || []}
             onChange={v => setField("preferredSpecialties", v)} placeholder="Pick one or more…"/>
         </Field>
         <div className="mt-4">

@@ -294,7 +294,7 @@ export default function App() {
         <div className="page-wrap">
           <div className="shell">
             <div className="eyebrow" style={{color:"var(--brand-orange)", marginBottom: 6}}>Candidate</div>
-            <ProfileTab student={student} setStudent={setStudent} onContinue={() => setRoute("predictions")} />
+            <ProfileTab student={student} setStudent={setStudent} stream={stream} records={records} onContinue={() => setRoute("predictions")} />
           </div>
         </div>
       )}
